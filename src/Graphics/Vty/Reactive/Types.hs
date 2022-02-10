@@ -76,6 +76,11 @@ dynIx d x = fmap (!! x) d
 --         images = zipWith (\x r -> f r (dynIx vars x) (expand <$> fixSize <*> (fixs !! x))) [0..] $ wsImage <$> ws :: [Dynamic Image]
 --     in images
 
+dynUI :: Dynamic (UI a) -> UI (Dynamic a)
+dynUI d = do
+    i <- valueB (current d)
+    switchUI i (updates d)
+
 switchUI :: UI a -> Event (UI a) -> UI (Dynamic a)
 switchUI ui e = do
     (a, image) <- UI $ lift $ runWriterT $ unUI $ ui
@@ -165,11 +170,16 @@ divideSize ft fa m = snd $ mapAccumL go (ft, fa) m
                 flexConsumed = flexAvailable * flex `div` flexTotal
             in ((flexTotal - flex, flexAvailable - flexConsumed), fixed + flexConsumed)
 
-ui :: Vty -> (Event () -> UI a) -> IO ()
+data AppInputs = AppInputs
+    { inputEvents :: Event Vty.Event
+    }
+
+ui :: Vty -> (AppInputs -> UI a) -> IO ()
 ui vty app = do
     (startHandler, fireStart) <- newAddHandler
     (tickHandler, fireTick) <- newAddHandler
     (resizeHandler, fireResize) <- newAddHandler
+    (eventHandler, fireEvent) <- newAddHandler
     region <- Vty.displayBounds $ Vty.outputIface vty
     let
         render :: Image -> IO ()
@@ -183,7 +193,8 @@ ui vty app = do
         networkDescription = do
             size <- stepperD region =<< fromAddHandler resizeHandler
             tick <- fromAddHandler tickHandler
-            (_, image) <- runUI (fst <$> size) (snd <$> size) (app tick)
+            events <- fromAddHandler eventHandler
+            (_, image) <- runUI (fst <$> size) (snd <$> size) (app AppInputs {inputEvents = events})
             imageUpdates <- changes $ current $ image
             start <- fromAddHandler tickHandler
             initialImage <- valueB $ current image
@@ -199,7 +210,7 @@ ui vty app = do
             Vty.nextEvent vty >>= \case
                 Vty.EvKey Vty.KEsc _ -> pure ()
                 Vty.EvResize x y -> fireResize (x, y) >> loop
-                _ -> fireTick () >> loop
+                a -> fireTick () >> fireEvent a >> loop
 
     loop
 
