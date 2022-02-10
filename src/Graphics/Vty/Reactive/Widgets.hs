@@ -67,9 +67,6 @@ defaultFillConfig = FillConfig
     , fillChar = pure ' '
     }
 
-fill' :: (FillConfig -> FillConfig) -> UI ()
-fill' f = fill (f $ FillConfig (pure (Measure 0 1 0)) (pure (Measure 0 1 0)) (pure ' '))
-
 fill :: FillConfig -> UI ()
 fill FillConfig {..} = do
     drawWidget $ WidgetConfig
@@ -185,50 +182,3 @@ box ui = do
                 , fillHeight = 1
                 , fillChar = pure '┘'
                 }
--- 
--- snugBox :: UI () -> UI ()
--- snugBox = box Snug Snug
--- 
--- flexBox :: UI () -> UI ()
--- flexBox = box Flex Flex
--- 
--- 
--- centerHoriz :: UI a -> UI a
--- centerHoriz (UI ui) = horizontally $ do
---     uiread <- UI ask
---     let
---         w = runReaderT ui uiread
---         m = runWriterT w
---     (a, r) <- UI $ lift $ lift $ m
---     
---     let
---         flexHeights = sum . fmap flexComponent <$> uiwHeights r
---         strutHeight = (\x -> if x == 0 then Measure 0 1 else 0) <$> flexHeights
--- 
---         flexWidths = sum . fmap flexComponent <$> uiwWidths r
---         strutWidth = (\x -> if x == 0 then Measure 0 1 else 0) <$> flexWidths
--- 
---     spacer' strutWidth
---     UI $ tell r
---     spacer' strutWidth
---     pure a
--- 
--- centerVert :: UI a -> UI a
--- centerVert (UI ui) = vertically $ do
---     uiread <- UI ask
---     let
---         w = runReaderT ui uiread
---         m = runWriterT w
---     (a, r) <- UI $ lift $ lift $ m
---     
---     let
---         flexHeights = sum . fmap flexComponent <$> uiwHeights r
---         strutHeight = (\x -> if x == 0 then Measure 0 1 else 0) <$> flexHeights
--- 
---         flexWidths = sum . fmap flexComponent <$> uiwWidths r
---         strutWidth = (\x -> if x == 0 then Measure 0 1 else 0) <$> flexWidths
--- 
---     strut' strutHeight
---     UI $ tell r
---     strut' strutHeight
---     pure a
