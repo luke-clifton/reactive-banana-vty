@@ -1,0 +1,7 @@
+packages: .
+
+source-repository-package
+    type: git
+    location: https://github.com/HeinrichApfelmus/reactive-banana
+    tag: 054781d0b0bf4e43ec1f395e3ccdbe7c7bd25896
+    subdir: reactive-banana
