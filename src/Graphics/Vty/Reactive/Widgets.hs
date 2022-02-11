@@ -5,6 +5,7 @@
 module Graphics.Vty.Reactive.Widgets
     where
 
+import qualified Data.Char as Char
 import Reactive.Banana
 import Reactive.Banana.Dynamic
 import Graphics.Vty.Reactive.Types
@@ -48,12 +49,16 @@ label LabelConfig{..} = mdo
 fixText :: Int -> Text -> Text
 fixText target t =
     let
-        iw = Vty.wctwidth t
+        firstLine = case Text.lines t of
+            [] -> ""
+            (a:as) -> a
+        final = Text.filter Char.isPrint firstLine
+        iw = Vty.wctwidth final
     in
         case compare target iw of
-            LT -> Text.take (target - 1) t <> "…"
-            EQ -> t
-            GT -> t <> Text.replicate (target - iw) " "
+            LT -> Text.take (target - 1) final <> "…"
+            EQ -> final
+            GT -> final <> Text.replicate (target - iw) " "
 
 
 data ScrollControl = ScrollUp | ScrollDown
@@ -218,7 +223,7 @@ spinner SpinnerConfig{..} = do
         render :: Char -> FlexImage
         render c _ _ = Vty.string Vty.defAttr [c]
 
-box :: UI () -> UI ()
+box :: UI a -> UI a
 box ui = do
     horizontally $ do
         vertically $ do
@@ -236,16 +241,17 @@ box ui = do
                 , fillHeight = 1
                 , fillChar = pure '└'
                 }
-        vertically $ do
+        a <- vertically $ do
             fill defaultFillConfig
                 { fillHeight = 1
                 , fillChar = pure '─'
                 }
-            ui
+            a <- ui
             fill defaultFillConfig
                 { fillHeight = 1
                 , fillChar = pure '─'
                 }
+            pure a
         vertically $ do
             fill defaultFillConfig
                 { fillWidth = 1
@@ -261,6 +267,7 @@ box ui = do
                 , fillHeight = 1
                 , fillChar = pure '┘'
                 }
+        pure a
 
 data InputControl
     = InputChar Char
@@ -284,12 +291,14 @@ data Input = Input
 
 defaultInputConfig :: InputConfig
 defaultInputConfig = InputConfig
-    { inputWidth = pure (Measure 0 1 0)
-    , inputHeight = pure (Measure 0 1 0)
+    { inputWidth = pure (Measure 10 1 0)
+    , inputHeight = pure (Measure 1 1 0)
     , inputInput = never
     }
 
 basicInput :: Vty.Event -> Maybe InputControl
+basicInput (Vty.EvKey (Vty.KChar 's') [Vty.MCtrl]) = Just InputSubmit
+basicInput (Vty.EvKey (Vty.KChar 'o') [Vty.MCtrl]) = Just InputSubmit
 basicInput (Vty.EvKey (Vty.KChar c) []) = Just (InputChar c)
 basicInput (Vty.EvKey (Vty.KBS) [])     = Just InputBS
 basicInput (Vty.EvKey (Vty.KEnter) [])   = Just InputNewLine
@@ -328,4 +337,5 @@ input InputConfig{..} = do
         }
     where
         render :: [Text] -> FlexImage
-        render l w h = Vty.vertCat $ map (Vty.text' Vty.defAttr) l
+        render l w h = Vty.resize (max 0 w) (max 0 h) $ Vty.vertCat $ map (Vty.text' Vty.defAttr) l
+

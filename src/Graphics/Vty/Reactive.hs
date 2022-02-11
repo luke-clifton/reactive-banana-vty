@@ -63,7 +63,7 @@ showInputs = runStandardUI $ \i -> do
 
 testInput :: IO ()
 testInput = runStandardUI $ \i -> vertically $ do
-    r <- input defaultInputConfig
+    r <- box $ input defaultInputConfig
         { inputInput = filterJust $ basicInput <$> inputEvents i
         }
 
